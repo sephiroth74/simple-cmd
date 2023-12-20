@@ -291,7 +291,7 @@ impl Cmd {
 		}
 	}
 
-	fn read_to_end(stdout: Option<ChildStdout>, stderr: Option<ChildStderr>) -> Result<(Vec<u8>, Vec<u8>), Error> {
+	pub fn read_to_end(stdout: Option<ChildStdout>, stderr: Option<ChildStderr>) -> Result<(Vec<u8>, Vec<u8>), Error> {
 		//let mut stdout_lines_count = 0;
 		//let mut stderr_lines_count = 0;
 
