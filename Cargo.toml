@@ -1,12 +1,12 @@
 [package]
-name = "cmd"
-version = "0.1.2"
+name = "simple-cmd"
+version = "0.0.1"
 edition = "2021"
 license = "MIT"
 authors = ["Alessandro Crugnola <alessandro.crugnola@gmail.com>"]
 description = "command line utility for spawning commands"
-homepage = "https://github.com/sephiroth74/cmd"
-repository = "https://github.com/sephiroth74/cmd"
+homepage = "https://github.com/sephiroth74/simple-cmd"
+repository = "https://github.com/sephiroth74/simple-cmd"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
