@@ -11,6 +11,7 @@ pub mod debug;
 mod errors;
 mod impls;
 pub mod output_ext;
+mod test;
 
 pub type Result<T> = std::result::Result<T, Error>;
 
