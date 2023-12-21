@@ -1,7 +1,7 @@
 use std::ffi::{OsStr, OsString};
 use std::fmt::{Display, Formatter};
 use std::io::{BufRead, BufReader};
-use std::process::{ChildStderr, ChildStdout, Command, Output, Stdio};
+use std::process::{ChildStderr, ChildStdout, Command, ExitStatus, Output, Stdio};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Condvar, Mutex};
 use std::time::{Duration, Instant};
@@ -12,7 +12,7 @@ use log::{trace, warn};
 
 use crate::debug::CommandDebug;
 use crate::errors::CmdError;
-use crate::{Cmd, CommandBuilder, Error, OutputResult, Vec8ToString};
+use crate::{Cmd, CommandBuilder, OutputResult, Vec8ToString};
 
 impl Display for Cmd {
 	fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
@@ -31,7 +31,7 @@ impl OutputResult for Output {
 		if self.status.success() && self.stderr.is_empty() {
 			Ok(self.stdout.to_owned())
 		} else {
-			Err(Error::CmdError(CmdError::from_err(self.status, self.stdout.to_owned(), self.stderr.to_owned())))
+			Err(crate::Error::CmdError(CmdError::from_err(self.status, self.stdout.to_owned(), self.stderr.to_owned())))
 		}
 	}
 
@@ -39,7 +39,7 @@ impl OutputResult for Output {
 		if self.status.code().is_none() && self.stderr.is_empty() {
 			Ok(self.stdout.to_owned())
 		} else {
-			Err(Error::CmdError(CmdError::from_err(self.status, self.stdout.to_owned(), self.stderr.to_owned())))
+			Err(crate::Error::CmdError(CmdError::from_err(self.status, self.stdout.to_owned(), self.stderr.to_owned())))
 		}
 	}
 }
@@ -196,6 +196,16 @@ impl Cmd {
 	}
 
 	// endregion punlic methods
+
+	pub fn run(mut self) -> crate::Result<Option<ExitStatus>> {
+		if self.debug {
+			self.debug();
+		}
+
+		let mut command = self.command();
+		let mut child = command.spawn().unwrap();
+		child.try_wait().map_err(|e| crate::Error::IoError(e))
+	}
 
 	pub fn output(self) -> crate::Result<Output> {
 		self.wait_for_output()
@@ -390,7 +400,7 @@ impl Cmd {
 		}
 	}
 
-	pub fn read_to_end(stdout: Option<ChildStdout>, stderr: Option<ChildStderr>) -> Result<(Vec<u8>, Vec<u8>), Error> {
+	pub fn read_to_end(stdout: Option<ChildStdout>, stderr: Option<ChildStderr>) -> crate::Result<(Vec<u8>, Vec<u8>)> {
 		//let mut stdout_lines_count = 0;
 		//let mut stderr_lines_count = 0;
 
