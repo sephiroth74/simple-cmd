@@ -250,7 +250,7 @@ impl Cmd {
 				match sel.try_ready() {
 					Err(_) => {
 						if let Ok(Some(status)) = child.try_wait() {
-							trace!("[thread] Exit Status Received... {:}", status);
+							//trace!("[thread] Exit Status Received... {:}", status);
 							*status_mutex = Some(status);
 							condvar.notify_one();
 							break;
@@ -258,14 +258,14 @@ impl Cmd {
 					}
 
 					Ok(i) if !killed && oper_cancel.is_some() && i == oper_cancel.unwrap() => {
-						trace!("[thread] ctrl+c");
+						warn!("ctrl+c received");
 						sel.remove(oper_cancel.unwrap());
 						let _ = child.kill();
 						killed = true;
 					}
 
 					Ok(i) if !killed && oper_timeout.is_some() && i == oper_timeout.unwrap() => {
-						trace!("[thread] timeout");
+						warn!("timeout!");
 						sel.remove(oper_timeout.unwrap());
 						let _ = child.kill();
 						killed = true;
@@ -296,7 +296,7 @@ impl Cmd {
 			//status = cvar.wait(status).unwrap();
 		}
 
-		trace!("final exit status is: {status:?}");
+		//trace!("final exit status is: {status:?}");
 
 		match output {
 			Ok(output) => Ok(Output {
