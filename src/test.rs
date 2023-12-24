@@ -8,7 +8,7 @@ mod tests {
 	use std::time::Duration;
 
 	use crossbeam_channel::{bounded, Receiver};
-	use log::trace;
+	use tracing::trace;
 
 	use crate::debug::CommandDebug;
 	use crate::output_ext::OutputExt;
@@ -19,7 +19,15 @@ mod tests {
 	macro_rules! init_log {
 		() => {
 			INIT.call_once(|| {
-				simple_logger::SimpleLogger::new().env().init().unwrap();
+				let subscriber = tracing_subscriber::fmt()
+				.compact()
+				.with_file(false)
+				.with_line_number(false)
+				.with_max_level(tracing::Level::TRACE)
+				.with_thread_ids(false)
+				.with_thread_names(true)
+				.finish();
+				tracing::subscriber::set_global_default(subscriber).unwrap();
 			})
 		};
 	}

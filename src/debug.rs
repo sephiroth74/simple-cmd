@@ -2,7 +2,7 @@ use std::ffi::OsStr;
 use std::ffi::OsString;
 use std::path::Path;
 
-use log::log;
+use tracing::trace;
 
 use crate::Cmd;
 
@@ -17,8 +17,7 @@ impl CommandDebug for std::process::Command {
 			a.push(b);
 			a
 		});
-		log!(
-			log::Level::Debug,
+		trace!(
 			"Executing `{} {}`...",
 			path.file_name().unwrap().to_str().unwrap(),
 			s.join(OsString::from(" ").as_os_str()).to_str().unwrap().trim()
@@ -34,8 +33,7 @@ impl CommandDebug for Cmd {
 			a.push(b.clone());
 			a
 		});
-		log!(
-			log::Level::Debug,
+		trace!(
 			"Executing `{} {}`...",
 			path.file_name().unwrap().to_str().unwrap(),
 			s.join(OsString::from(" ").as_os_str()).to_str().unwrap().trim()
