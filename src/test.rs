@@ -20,13 +20,13 @@ mod tests {
 		() => {
 			INIT.call_once(|| {
 				let subscriber = tracing_subscriber::fmt()
-				.compact()
-				.with_file(false)
-				.with_line_number(false)
-				.with_max_level(tracing::Level::TRACE)
-				.with_thread_ids(false)
-				.with_thread_names(true)
-				.finish();
+					.compact()
+					.with_file(false)
+					.with_line_number(false)
+					.with_max_level(tracing::Level::TRACE)
+					.with_thread_ids(false)
+					.with_thread_names(true)
+					.finish();
 				tracing::subscriber::set_global_default(subscriber).unwrap();
 			})
 		};
