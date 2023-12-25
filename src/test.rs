@@ -5,7 +5,7 @@ mod tests {
 	use std::sync::Once;
 	use std::thread;
 	use std::thread::sleep;
-	use std::time::Duration;
+	use std::time::{Duration, Instant};
 
 	use crossbeam_channel::{bounded, Receiver};
 	use tracing::trace;
@@ -72,6 +72,40 @@ mod tests {
 		assert!(!output.status.success());
 		assert!(!output.interrupt());
 		assert!(output.kill());
+	}
+
+	#[test]
+	fn test_run() {
+		init_log!();
+		let now = Instant::now();
+		let pool = threadpool::Builder::new().num_threads(2).build();
+
+		pool.execute(move || {
+			let _r = Cmd::builder("sleep").arg("2").build().run();
+			trace!("cmd 1 done");
+		});
+
+		pool.execute(move || {
+			let _r = Cmd::builder("sleep").arg("2").build().run();
+			trace!("cmd 2 done");
+		});
+
+		pool.execute(move || {
+			let _r = Cmd::builder("sleep").arg("2").build().run();
+			trace!("cmd 3 done");
+		});
+
+		pool.execute(move || {
+			let _r = Cmd::builder("sleep").arg("2").build().run();
+			trace!("cmd 4 done");
+		});
+
+		pool.join();
+
+		let elapsed = now.elapsed();
+
+		trace!("done in {:?}ms", elapsed.as_millis());
+		debug_assert!(elapsed < Duration::from_secs(2), "Expected less than 2 seconds, but got {:?}", elapsed);
 	}
 
 	#[test]

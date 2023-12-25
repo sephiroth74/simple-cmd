@@ -1,6 +1,6 @@
 [package]
 name = "simple-cmd"
-version = "0.0.5"
+version = "0.0.6"
 edition = "2021"
 license = "MIT"
 authors = ["Alessandro Crugnola <alessandro.crugnola@gmail.com>"]
@@ -21,3 +21,4 @@ tracing = "0.1.40"
 simple_logger = "4.3.0"
 ctrlc = "3.4.1"
 tracing-subscriber = "0.3.18"
+threadpool = "1.8.1"

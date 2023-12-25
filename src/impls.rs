@@ -3,9 +3,9 @@ use std::fmt::{Display, Formatter};
 use std::io;
 use std::io::{BufRead, BufReader, ErrorKind};
 use std::process::{ChildStderr, ChildStdout, Command, ExitStatus, Output, Stdio};
-use std::sync::atomic::{AtomicBool, Ordering};
+
 use std::sync::{Arc, Condvar, Mutex};
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 use crossbeam::channel::Receiver;
 use crossbeam_channel::{tick, Select};
@@ -205,6 +205,7 @@ impl Cmd {
 
 		let mut command = self.command();
 		let mut child = command.spawn().unwrap();
+		drop(command);
 		child.try_wait().map_err(|e| crate::Error::IoError(e))
 	}
 
@@ -228,6 +229,8 @@ impl Cmd {
 
 		let status_receiver = Arc::new((Mutex::new(None), Condvar::new()));
 		let status_receiver_cloned = Arc::clone(&status_receiver);
+
+		drop(command);
 
 		let local_thread = std::thread::Builder::new().name("cmd_wait".to_string()).spawn(move || {
 			let (lock, condvar) = &*status_receiver_cloned;
@@ -298,98 +301,6 @@ impl Cmd {
 		}
 
 		//trace!("final exit status is: {status:?}");
-
-		match output {
-			Ok(output) => Ok(Output {
-				status: status.unwrap(),
-				stdout: output.0,
-				stderr: output.1,
-			}),
-			Err(e) => Err(e),
-		}
-	}
-
-	#[allow(dead_code)]
-	fn wait_for_output2(mut self) -> crate::Result<Output> {
-		if self.debug {
-			self.debug();
-		}
-
-		let timeout = self.timeout.take();
-		let cancel_signal = self.signal.take();
-
-		let mut command = self.command();
-		let mut child = command.spawn().unwrap();
-
-		let stdout = child.stdout.take();
-		let stderr = child.stderr.take();
-
-		let pair = Arc::new((Mutex::new(None), Condvar::new()));
-		let pair2 = Arc::clone(&pair);
-
-		let thread = std::thread::Builder::new().name("cmd_wait".to_string()).spawn(move || {
-			//trace!("Started thread {:?}", std::thread::current());
-
-			let (lock, condvar) = &*pair2;
-			let mut status_mutex = lock.lock().unwrap();
-
-			let now = Instant::now();
-			let term = Arc::new(AtomicBool::new(false));
-			let mut killed = false;
-			signal_hook::flag::register(signal_hook::consts::SIGINT, Arc::clone(&term)).unwrap();
-
-			loop {
-				// listen for external signals
-				if let Some(ref cancel_signal) = cancel_signal {
-					if !killed {
-						if let Ok(()) = cancel_signal.try_recv() {
-							let _ = child.kill().unwrap();
-							killed = true;
-						}
-					}
-				}
-
-				// listen for Ctrl+c signal
-				if !killed && term.load(Ordering::Relaxed) {
-					warn!("Ctr+c received!");
-					let _ = child.kill().unwrap();
-					killed = true;
-				}
-
-				// listend for wait exit status
-				if let Ok(Some(status)) = child.try_wait() {
-					trace!("Exit Status is: {}", status);
-					*status_mutex = Some(status);
-					condvar.notify_one();
-					break;
-				} else {
-					// finally check for timeout
-					if !killed {
-						if let Some(timeout) = timeout {
-							if now.elapsed() > timeout {
-								warn!("timeout passed `{}ms`... kill the process", now.elapsed().as_millis());
-								let _ = child.kill().unwrap();
-								killed = true;
-								//break;
-							}
-						}
-					}
-				}
-			}
-		})?;
-
-		let output = Cmd::read_to_end(stdout, stderr);
-
-		if let Err(_err) = thread.join() {
-			warn!("failed to join the thread!");
-		}
-
-		// Wait for the thread to start up.
-		let (lock, cvar) = &*pair;
-		let mut status = lock.lock().unwrap();
-		while status.is_none() {
-			status = cvar.wait(status).unwrap();
-		}
 
 		match output {
 			Ok(output) => Ok(Output {
