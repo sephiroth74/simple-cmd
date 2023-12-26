@@ -197,7 +197,7 @@ impl Cmd {
 
 	// endregion punlic methods
 
-	pub fn run(self) -> crate::Result<Option<ExitStatus>> {
+	pub fn run(mut self) -> crate::Result<Option<ExitStatus>> {
 		if self.debug {
 			self.debug();
 		}
