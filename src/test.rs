@@ -131,6 +131,13 @@ mod tests {
 	}
 
 	#[test]
+	fn test_cmd_to_string() {
+		let builder = Cmd::builder("sleep").args(vec!["1", "2"]);
+		let cmd_string = builder.to_string();
+		assert_eq!(cmd_string, "sleep 1 2".to_string());
+	}
+
+	#[test]
 	fn test_pipe() {
 		init_log!();
 		let cancel = ctrlc_channel().unwrap();

@@ -23,7 +23,7 @@ impl Display for Cmd {
 
 impl Display for CommandBuilder {
 	fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-		write!(f, "{:?} {:?}", self.program, self.args)
+		write!(f, "{:} {:}", self.program.to_str().unwrap(), self.args.join(OsStr::new(" ")).to_str().unwrap())
 	}
 }
 
