@@ -8,7 +8,7 @@ use thiserror::Error;
 use crate::errors::CmdError;
 
 pub mod debug;
-mod errors;
+pub mod errors;
 mod impls;
 pub mod output_ext;
 mod test;
@@ -18,7 +18,7 @@ pub type Result<T> = std::result::Result<T, Error>;
 #[derive(Error, Debug)]
 pub enum Error {
 	#[error("cmd error")]
-	CmdError(#[from] CmdError),
+	CommandError(#[from] CmdError),
 
 	#[error(transparent)]
 	IoError(#[from] std::io::Error),

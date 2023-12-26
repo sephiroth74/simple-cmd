@@ -31,7 +31,7 @@ impl OutputResult for Output {
 		if self.status.success() && self.stderr.is_empty() {
 			Ok(self.stdout.to_owned())
 		} else {
-			Err(crate::Error::CmdError(CmdError::from_err(self.status, self.stdout.to_owned(), self.stderr.to_owned())))
+			Err(crate::Error::CommandError(CmdError::from_err(self.status, self.stdout.to_owned(), self.stderr.to_owned())))
 		}
 	}
 
@@ -39,7 +39,7 @@ impl OutputResult for Output {
 		if self.status.code().is_none() && self.stderr.is_empty() {
 			Ok(self.stdout.to_owned())
 		} else {
-			Err(crate::Error::CmdError(CmdError::from_err(self.status, self.stdout.to_owned(), self.stderr.to_owned())))
+			Err(crate::Error::CommandError(CmdError::from_err(self.status, self.stdout.to_owned(), self.stderr.to_owned())))
 		}
 	}
 }
