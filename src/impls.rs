@@ -3,13 +3,12 @@ use std::fmt::{Display, Formatter};
 use std::io;
 use std::io::{BufRead, BufReader, ErrorKind};
 use std::process::{ChildStderr, ChildStdout, Command, ExitStatus, Output, Stdio};
-
 use std::sync::{Arc, Condvar, Mutex};
 use std::time::Duration;
 
 use crossbeam::channel::Receiver;
 use crossbeam_channel::{tick, Select};
-use tracing::{trace, warn};
+use tracing::warn;
 
 use crate::debug::CommandDebug;
 use crate::errors::CmdError;
@@ -198,7 +197,7 @@ impl Cmd {
 
 	// endregion punlic methods
 
-	pub fn run(mut self) -> crate::Result<Option<ExitStatus>> {
+	pub fn run(self) -> crate::Result<Option<ExitStatus>> {
 		if self.debug {
 			self.debug();
 		}
@@ -335,12 +334,13 @@ impl Cmd {
 			}
 		}
 
-		//debug!("[stdout] Completed with {stdout_lines_count} lines");
-		//debug!("[stderr] Completed with {stderr_lines_count} lines");
 		Ok((stdout_writer, stderr_writer))
 	}
 
-	pub fn pipe(mut self, mut other: Command) -> Result<Output, Error> {
+	pub fn pipe<T>(mut self, cmd2: T) -> Result<Output, Error>
+	where
+		T: Into<Command>,
+	{
 		if self.debug {
 			self.debug();
 		}
@@ -353,6 +353,8 @@ impl Cmd {
 
 		let child1_stdout: ChildStdout = child1.stdout.take().ok_or(io::Error::new(ErrorKind::InvalidData, "child stdout unavailable"))?;
 		let fd: Stdio = child1_stdout.try_into().unwrap();
+
+		let mut other = cmd2.into();
 		other.stdin(fd);
 
 		let mut child2 = other.spawn().unwrap();
@@ -388,7 +390,6 @@ impl Cmd {
 				match sel.try_ready() {
 					Err(_) => {
 						if let Ok(Some(status)) = child2.try_wait() {
-							trace!("child 2 exited");
 							let _ = child1.kill();
 							*status_mutex = Some(status);
 							condvar.notify_one();
@@ -396,7 +397,6 @@ impl Cmd {
 						}
 
 						if let Ok(Some(_)) = child1.try_wait() {
-							trace!("child 1 exited");
 							let _ = child2.kill();
 							killed = true;
 						}
@@ -496,6 +496,26 @@ impl<B: BufRead> Iterator for LinesVec<B> {
 
 impl From<CommandBuilder> for Command {
 	fn from(value: CommandBuilder) -> Self {
+		let mut command = Command::new(value.program.to_os_string());
+		command.args(value.args.to_vec());
+
+		if let Some(stdin) = value.stdin {
+			command.stdin(Stdio::from(stdin));
+		}
+
+		if let Some(stdout) = value.stdout {
+			command.stdout(Stdio::from(stdout));
+		}
+
+		if let Some(stderr) = value.stderr {
+			command.stderr(Stdio::from(stderr));
+		}
+		command
+	}
+}
+
+impl From<Cmd> for Command {
+	fn from(value: Cmd) -> Self {
 		let mut command = Command::new(value.program.to_os_string());
 		command.args(value.args.to_vec());
 

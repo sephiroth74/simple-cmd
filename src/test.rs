@@ -12,7 +12,7 @@ mod tests {
 
 	use crate::debug::CommandDebug;
 	use crate::output_ext::OutputExt;
-	use crate::Cmd;
+	use crate::{Cmd, Vec8ToString};
 
 	static INIT: Once = Once::new();
 
@@ -172,5 +172,24 @@ mod tests {
 
 		println!();
 		println!("result: {:?}", result);
+	}
+
+	#[test]
+	fn test_pipe2() {
+		init_log!();
+		let command1 = Cmd::builder("adb").args(vec!["shell", "dumpsys", "power"]).with_debug(true).build();
+		let command2 = Cmd::builder("sed")
+			.arg("-n")
+			.arg("s/mWakefulness=\\(\\S*\\)/\\1/p")
+			.with_debug(true)
+			.stdout(Some(Stdio::piped()))
+			.build();
+
+		let result = command1.pipe(command2).unwrap();
+		println!();
+		println!("result: {:?}", result);
+
+		let output = result.stdout.as_str().unwrap().trim().to_lowercase();
+		assert!(output == "awake" || output == "asleep");
 	}
 }

@@ -7,11 +7,11 @@ use tracing::trace;
 use crate::Cmd;
 
 pub trait CommandDebug {
-	fn debug(&mut self) -> &mut Self;
+	fn debug(&self) -> &Self;
 }
 
 impl CommandDebug for std::process::Command {
-	fn debug(&mut self) -> &mut Self {
+	fn debug(&self) -> &Self {
 		let path = Path::new(self.get_program());
 		let s = self.get_args().fold(vec![], |mut a: Vec<&OsStr>, b: &OsStr| {
 			a.push(b);
@@ -27,7 +27,7 @@ impl CommandDebug for std::process::Command {
 }
 
 impl CommandDebug for Cmd {
-	fn debug(&mut self) -> &mut Self {
+	fn debug(&self) -> &Self {
 		let path = Path::new(self.program.as_os_str());
 		let s = (&self.args).into_iter().fold(Vec::new(), |mut a: Vec<OsString>, b: &OsString| {
 			a.push(b.clone());
