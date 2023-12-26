@@ -1,5 +1,5 @@
 use std::fmt::{Debug, Display, Formatter};
-use std::process::ExitStatus;
+use std::process::{ExitStatus, Output};
 
 use thiserror::Error;
 
@@ -10,6 +10,12 @@ pub struct CmdError {
 	pub status: Option<ExitStatus>,
 	pub stdout: Vec<u8>,
 	pub stderr: Vec<u8>,
+}
+
+impl From<Output> for CmdError {
+	fn from(value: Output) -> Self {
+		CmdError::from_err(value.status, value.stdout, value.stderr)
+	}
 }
 
 impl CmdError {

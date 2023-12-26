@@ -396,9 +396,15 @@ impl Cmd {
 							break;
 						}
 
-						if let Ok(Some(_)) = child1.try_wait() {
-							let _ = child2.kill();
-							killed = true;
+						if !killed {
+							if let Ok(Some(_)) = child1.try_wait() {
+								if let Ok(Some(_status)) = child2.try_wait() {
+									killed = true;
+								} else {
+									let _ = child2.kill();
+									killed = true;
+								}
+							}
 						}
 					}
 

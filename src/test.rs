@@ -132,7 +132,9 @@ mod tests {
 
 	#[test]
 	fn test_cmd_to_string() {
-		let builder = Cmd::builder("sleep").args(vec!["1", "2"]);
+		let builder = Cmd::builder("sleep").args(vec![
+			"1", "2",
+		]);
 		let cmd_string = builder.to_string();
 		assert_eq!(cmd_string, "sleep 1 2".to_string());
 	}
@@ -142,7 +144,10 @@ mod tests {
 		init_log!();
 		let cancel = ctrlc_channel().unwrap();
 		let builder = Cmd::builder("adb")
-			.args(vec!["shell", "while true; do screenrecord --bit-rate 4000000 --output-format=h264 --size 1920x1080 -; done"])
+			.args(vec![
+				"shell",
+				"while true; do screenrecord --bit-rate 4000000 --output-format=h264 --size 1920x1080 -; done",
+			])
 			.timeout(Some(Duration::from_secs(60)))
 			.signal(Some(cancel))
 			.with_debug(true);
@@ -177,7 +182,13 @@ mod tests {
 	#[test]
 	fn test_pipe2() {
 		init_log!();
-		let command1 = Cmd::builder("adb").args(vec!["shell", "dumpsys", "power"]).with_debug(true).build();
+		let command1 = Cmd::builder("adb")
+			.args(vec![
+				"shell", "dumpsys", "power",
+			])
+			.with_debug(true)
+			.build();
+
 		let command2 = Cmd::builder("sed")
 			.arg("-n")
 			.arg("s/mWakefulness=\\(\\S*\\)/\\1/p")
