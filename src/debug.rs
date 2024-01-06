@@ -29,10 +29,12 @@ impl CommandDebug for std::process::Command {
 impl CommandDebug for Cmd {
 	fn debug(&mut self) -> &mut Self {
 		let path = Path::new(self.program.as_os_str());
-		let s = (&self.args).into_iter().fold(Vec::new(), |mut a: Vec<OsString>, b: &OsString| {
-			a.push(b.clone());
-			a
-		});
+		let s = (&self.args)
+			.into_iter()
+			.fold(Vec::new(), |mut a: Vec<OsString>, b: &OsString| {
+				a.push(b.clone());
+				a
+			});
 		trace!(
 			"Executing `{} {}`...",
 			path.file_name().unwrap().to_str().unwrap(),

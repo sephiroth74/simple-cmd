@@ -8,7 +8,7 @@ mod tests {
 	use std::time::{Duration, Instant};
 
 	use crossbeam_channel::{bounded, Receiver};
-	use tracing::trace;
+	use tracing::{debug, trace, warn};
 
 	use crate::debug::CommandDebug;
 	use crate::output_ext::OutputExt;
@@ -63,9 +63,30 @@ mod tests {
 	}
 
 	#[test]
+	fn test_error() {
+		init_log!();
+		let cmd = Cmd::builder("adb")
+			.with_debug(true)
+			.arg("push")
+			.arg("/var/folders/h5/6_rkm34x20924137hx8_d7jr0000gn/T/1fc0ac62-7bd2-483d-8fcc-47ac37fcdf58")
+			.arg("tvlib-aot-client.properties")
+			.build();
+
+		let output = cmd.output().expect("failed to wait for command");
+		debug!("output: {:#?}", &output);
+
+		let error: crate::Error = output.into();
+		warn!("error: {}", error);
+	}
+
+	#[test]
 	fn test_sleep() {
 		init_log!();
-		let cmd = Cmd::builder("sleep").arg("1").timeout(Some(Duration::from_millis(100))).with_debug(true).build();
+		let cmd = Cmd::builder("sleep")
+			.arg("1")
+			.timeout(Some(Duration::from_millis(100)))
+			.with_debug(true)
+			.build();
 		let output = cmd.output().expect("failed to wait for command");
 		trace!("output: {:#?}", output);
 
@@ -105,14 +126,22 @@ mod tests {
 		let elapsed = now.elapsed();
 
 		trace!("done in {:?}ms", elapsed.as_millis());
-		debug_assert!(elapsed < Duration::from_secs(2), "Expected less than 2 seconds, but got {:?}", elapsed);
+		debug_assert!(
+			elapsed < Duration::from_secs(2),
+			"Expected less than 2 seconds, but got {:?}",
+			elapsed
+		);
 	}
 
 	#[test]
 	fn test_cancel_signal() {
 		init_log!();
 		let cancel_signal = cancel_signal(Duration::from_secs(1)).unwrap();
-		let cmd = Cmd::builder("sleep").arg("2").with_debug(true).signal(Some(cancel_signal)).build();
+		let cmd = Cmd::builder("sleep")
+			.arg("2")
+			.with_debug(true)
+			.signal(Some(cancel_signal))
+			.build();
 		let output = cmd.output().expect("failed to wait for command");
 		trace!("output: {:#?}", output);
 

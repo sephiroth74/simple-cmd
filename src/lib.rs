@@ -17,7 +17,7 @@ pub type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Error, Debug)]
 pub enum Error {
-	#[error("cmd error")]
+	#[error("cmd error: {0}")]
 	CommandError(#[from] CmdError),
 
 	#[error(transparent)]

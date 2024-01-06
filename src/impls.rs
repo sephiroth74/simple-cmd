@@ -22,7 +22,12 @@ impl Display for Cmd {
 
 impl Display for CommandBuilder {
 	fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-		write!(f, "{:} {:}", self.program.to_str().unwrap(), self.args.join(OsStr::new(" ")).to_str().unwrap())
+		write!(
+			f,
+			"{:} {:}",
+			self.program.to_str().unwrap(),
+			self.args.join(OsStr::new(" ")).to_str().unwrap()
+		)
 	}
 }
 
@@ -31,7 +36,11 @@ impl OutputResult for Output {
 		if self.status.success() && self.stderr.is_empty() {
 			Ok(self.stdout.to_owned())
 		} else {
-			Err(crate::Error::CommandError(CmdError::from_err(self.status, self.stdout.to_owned(), self.stderr.to_owned())))
+			Err(crate::Error::CommandError(CmdError::from_err(
+				self.status,
+				self.stdout.to_owned(),
+				self.stderr.to_owned(),
+			)))
 		}
 	}
 
@@ -39,7 +48,11 @@ impl OutputResult for Output {
 		if self.status.code().is_none() && self.stderr.is_empty() {
 			Ok(self.stdout.to_owned())
 		} else {
-			Err(crate::Error::CommandError(CmdError::from_err(self.status, self.stdout.to_owned(), self.stderr.to_owned())))
+			Err(crate::Error::CommandError(CmdError::from_err(
+				self.status,
+				self.stdout.to_owned(),
+				self.stderr.to_owned(),
+			)))
 		}
 	}
 }
@@ -351,7 +364,10 @@ impl Cmd {
 		let mut command1 = self.command();
 		let mut child1 = command1.spawn().unwrap();
 
-		let child1_stdout: ChildStdout = child1.stdout.take().ok_or(io::Error::new(ErrorKind::InvalidData, "child stdout unavailable"))?;
+		let child1_stdout: ChildStdout = child1
+			.stdout
+			.take()
+			.ok_or(io::Error::new(ErrorKind::InvalidData, "child stdout unavailable"))?;
 		let fd: Stdio = child1_stdout.try_into().unwrap();
 
 		let mut other = cmd2.into();
