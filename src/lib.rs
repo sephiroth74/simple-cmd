@@ -1,3 +1,5 @@
+#![doc = include_str!("../README.md")]
+
 use std::ffi::OsString;
 use std::process::Stdio;
 use std::time::Duration;
