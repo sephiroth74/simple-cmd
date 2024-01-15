@@ -76,7 +76,7 @@ impl CommandBuilder {
 		self
 	}
 
-	pub fn with_timeout(&mut self, duration: Duration) -> &mut Self {
+	pub fn with_timeout(mut self, duration: Duration) -> Self {
 		self.timeout = Some(duration);
 		self
 	}
@@ -86,7 +86,7 @@ impl CommandBuilder {
 		self
 	}
 
-	pub fn with_signal(&mut self, signal: Receiver<()>) -> &mut Self {
+	pub fn with_signal(mut self, signal: Receiver<()>) -> Self {
 		self.signal = Some(signal);
 		self
 	}
@@ -101,7 +101,7 @@ impl CommandBuilder {
 		self
 	}
 
-	pub fn with_arg<S: AsRef<OsStr>>(&mut self, arg: S) -> &mut Self {
+	pub fn with_arg<S: AsRef<OsStr>>(mut self, arg: S) -> Self {
 		self.args.push(arg.as_ref().into());
 		self
 	}
@@ -117,7 +117,7 @@ impl CommandBuilder {
 		self
 	}
 
-	pub fn with_args<I, S>(&mut self, args: I) -> &mut Self
+	pub fn with_args<I, S>(mut self, args: I) -> Self
 	where
 		I: IntoIterator<Item = S>,
 		S: AsRef<OsStr>,
