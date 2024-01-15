@@ -62,7 +62,7 @@ impl CommandBuilder {
 		CommandBuilder {
 			program: OsString::from(program.as_ref()),
 			timeout: None,
-			debug: true,
+			debug: false,
 			args: vec![],
 			stdin: None,
 			stdout: Some(Stdio::piped()),
@@ -180,7 +180,7 @@ impl Cmd {
 		Cmd {
 			program: OsString::from(program.as_ref()),
 			timeout: None,
-			debug: true,
+			debug: false,
 			args: vec![],
 			stdin: None,
 			stdout: None,
