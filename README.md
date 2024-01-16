@@ -27,3 +27,26 @@ pub fn main() {
     assert!(output.kill());
 }
 ```
+
+Piping:
+
+```rust
+use simple_cmd::Cmd;
+use simple_cmd::prelude::*;
+
+fn test_pipe() {
+    let builder = Cmd::builder("echo").args(&["hello pretty world"]).with_debug(true);
+    let command1 = builder.build();
+
+    let mut command2 = Command::new("sed");
+    command2.args(&["s/pretty/_/"]);
+    command2.stdout(Stdio::piped());
+
+    let result = command1.pipe(command2).unwrap();
+    let output = result.stdout.as_str().unwrap().trim();
+
+    assert!(result.success());
+    assert_eq!("hello _ world", output);
+}
+
+```

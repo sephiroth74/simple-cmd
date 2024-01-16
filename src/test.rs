@@ -1,7 +1,6 @@
 #[cfg(test)]
 mod tests {
 	use std::convert::Infallible;
-	use std::io::BufRead;
 	use std::process::{Command, Stdio};
 	use std::sync::Once;
 	use std::thread;
@@ -13,7 +12,7 @@ mod tests {
 
 	use crate::debug::CommandDebug;
 	use crate::prelude::OutputExt;
-	use crate::Cmd;
+	use crate::{Cmd, Vec8ToString};
 
 	static INIT: Once = Once::new();
 
@@ -177,25 +176,18 @@ mod tests {
 	#[test]
 	fn test_pipe() {
 		init_log!();
-		let cancel = ctrlc_channel().unwrap();
-		let builder = Cmd::builder("ls")
-			.arg("-la")
-			.timeout(Some(Duration::from_secs(60)))
-			.signal(Some(cancel))
-			.with_debug(true);
+		let builder = Cmd::builder("echo").args(&["hello pretty world"]).with_debug(true);
 
 		let command1 = builder.build();
 
-		let mut command2 = Command::new("grep");
-		command2.args(vec![
-			"-e", r#"\.$"#,
-		]);
+		let mut command2 = Command::new("sed");
+		command2.args(&["s/pretty/_/"]);
 		command2.stdout(Stdio::piped());
 
 		let result = command1.pipe(command2).unwrap();
-		assert!(result.success());
+		let output = result.stdout.as_str().unwrap().trim();
 
-		let lines: Vec<String> = result.stdout.lines().filter_map(|line| line.ok()).collect::<Vec<_>>();
-		assert_eq!(2, lines.len());
+		assert!(result.success());
+		assert_eq!("hello _ world", output);
 	}
 }

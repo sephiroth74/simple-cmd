@@ -8,7 +8,7 @@ use std::time::Duration;
 
 use crossbeam::channel::Receiver;
 use crossbeam_channel::{tick, Select};
-use tracing::warn;
+use tracing::{error, trace, warn};
 
 use crate::debug::CommandDebug;
 use crate::errors::CmdError;
@@ -354,8 +354,12 @@ impl Cmd {
 	where
 		T: Into<Command>,
 	{
+		let mut other = cmd2.into();
+
 		if self.debug {
-			self.debug();
+			let s1 = self.as_string();
+			let s2 = other.as_string();
+			trace!("Executing `{s1} | {s2}`...");
 		}
 
 		let cancel_signal = self.signal.take();
@@ -368,9 +372,9 @@ impl Cmd {
 			.stdout
 			.take()
 			.ok_or(io::Error::new(ErrorKind::InvalidData, "child stdout unavailable"))?;
+
 		let fd: Stdio = child1_stdout.try_into().unwrap();
 
-		let mut other = cmd2.into();
 		other.stdin(fd);
 
 		let mut child2 = other.spawn().unwrap();
@@ -406,6 +410,7 @@ impl Cmd {
 				match sel.try_ready() {
 					Err(_) => {
 						if let Ok(Some(status)) = child2.try_wait() {
+							//warn!("exit status received:/**/ {:?}", status);
 							let _ = child1.kill();
 							*status_mutex = Some(status);
 							condvar.notify_one();
@@ -413,11 +418,14 @@ impl Cmd {
 						}
 
 						if !killed {
-							if let Ok(Some(_)) = child1.try_wait() {
+							if let Ok(Some(_status1)) = child1.try_wait() {
+								//warn!("[1] exit status received: {:?}", status1);
 								if let Ok(Some(_status)) = child2.try_wait() {
+									//warn!("[2] exit status received: {:?}", _status);
 									killed = true;
 								} else {
-									let _ = child2.kill();
+									//warn!("killing child2..");
+									//let _ = child2.kill();
 									killed = true;
 								}
 							}
@@ -425,7 +433,6 @@ impl Cmd {
 					}
 
 					Ok(i) if !killed && oper_cancel.is_some() && i == oper_cancel.unwrap() => {
-						warn!("ctrl+c received");
 						sel.remove(oper_cancel.unwrap());
 						let _ = child1.kill();
 						let _ = child2.kill();
@@ -433,7 +440,6 @@ impl Cmd {
 					}
 
 					Ok(i) if !killed && oper_timeout.is_some() && i == oper_timeout.unwrap() => {
-						warn!("timeout!");
 						sel.remove(oper_timeout.unwrap());
 						let _ = child1.kill();
 						let _ = child2.kill();
@@ -441,7 +447,7 @@ impl Cmd {
 					}
 
 					Ok(i) => {
-						warn!("Invalid operation index {i}!");
+						error!("Invalid operation index {i}!");
 						break;
 					}
 				}

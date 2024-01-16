@@ -8,26 +8,36 @@ use crate::Cmd;
 
 pub trait CommandDebug {
 	fn debug(&mut self) -> &mut Self;
+	fn as_string(&self) -> String;
 }
 
 impl CommandDebug for std::process::Command {
 	fn debug(&mut self) -> &mut Self {
+		trace!("Executing `{}`...", self.as_string());
+		self
+	}
+
+	fn as_string(&self) -> String {
 		let path = Path::new(self.get_program());
 		let s = self.get_args().fold(vec![], |mut a: Vec<&OsStr>, b: &OsStr| {
 			a.push(b);
 			a
 		});
-		trace!(
-			"Executing `{} {}`...",
+		format!(
+			"{} {}",
 			path.file_name().unwrap().to_str().unwrap(),
 			s.join(OsString::from(" ").as_os_str()).to_str().unwrap().trim()
-		);
-		self
+		)
 	}
 }
 
 impl CommandDebug for Cmd {
 	fn debug(&mut self) -> &mut Self {
+		trace!("Executing `{}`...", self.as_string());
+		self
+	}
+
+	fn as_string(&self) -> String {
 		let path = Path::new(self.program.as_os_str());
 		let s = (&self.args)
 			.into_iter()
@@ -35,11 +45,10 @@ impl CommandDebug for Cmd {
 				a.push(b.clone());
 				a
 			});
-		trace!(
-			"Executing `{} {}`...",
+		format!(
+			"{} {}",
 			path.file_name().unwrap().to_str().unwrap(),
 			s.join(OsString::from(" ").as_os_str()).to_str().unwrap().trim()
-		);
-		self
+		)
 	}
 }
