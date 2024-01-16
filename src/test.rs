@@ -8,7 +8,7 @@ mod tests {
 	use std::time::{Duration, Instant};
 
 	use crossbeam_channel::{bounded, Receiver};
-	use tracing::{debug, trace, warn};
+	use tracing::trace;
 
 	use crate::debug::CommandDebug;
 	use crate::prelude::OutputExt;
@@ -70,18 +70,20 @@ mod tests {
 	#[test]
 	fn test_error() {
 		init_log!();
-		let cmd = Cmd::builder("adb")
+		let cmd = Cmd::builder("sleep")
 			.with_debug(true)
-			.arg("push")
-			.arg("/var/folders/h5/6_rkm34x20924137hx8_d7jr0000gn/T/1fc0ac62-7bd2-483d-8fcc-47ac37fcdf58")
-			.arg("tvlib-aot-client.properties")
+			.arg("2")
+			.with_timeout(Duration::from_secs(1))
 			.build();
 
 		let output = cmd.output().expect("failed to wait for command");
-		debug!("output: {:#?}", &output);
+		println!("output: {:#?}", output);
 
-		let error: crate::Error = output.into();
-		warn!("error: {}", error);
+		assert!(output.error());
+		assert!(!output.success());
+		assert!(output.has_signal());
+		assert!(!output.interrupt());
+		assert!(!output.has_stdout());
 	}
 
 	#[test]

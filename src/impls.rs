@@ -226,7 +226,8 @@ impl Cmd {
 	}
 
 	pub(crate) fn wait_for_output(mut self) -> crate::Result<Output> {
-		if self.debug {
+		let has_debug = self.debug;
+		if has_debug {
 			self.debug();
 		}
 
@@ -266,7 +267,9 @@ impl Cmd {
 				match sel.try_ready() {
 					Err(_) => {
 						if let Ok(Some(status)) = child.try_wait() {
-							//trace!("[thread] Exit Status Received... {:}", status);
+							if has_debug {
+								trace!("[thread] Exit Status Received... {:}", status);
+							}
 							*status_mutex = Some(status);
 							condvar.notify_one();
 							break;
@@ -274,21 +277,27 @@ impl Cmd {
 					}
 
 					Ok(i) if !killed && oper_cancel.is_some() && i == oper_cancel.unwrap() => {
-						warn!("ctrl+c received");
+						if has_debug {
+							warn!("ctrl+c received");
+						}
 						sel.remove(oper_cancel.unwrap());
 						let _ = child.kill();
 						killed = true;
 					}
 
 					Ok(i) if !killed && oper_timeout.is_some() && i == oper_timeout.unwrap() => {
-						warn!("timeout!");
+						if has_debug {
+							warn!("timeout!");
+						}
 						sel.remove(oper_timeout.unwrap());
 						let _ = child.kill();
 						killed = true;
 					}
 
 					Ok(i) => {
-						warn!("Invalid operation index {i}!");
+						if has_debug {
+							warn!("Invalid operation index {i}!");
+						}
 						break;
 					}
 				}
