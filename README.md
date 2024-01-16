@@ -9,6 +9,7 @@ Example:
 
 ```rust
 use simple_cmd::Cmd;
+use simple_cmd::prelude::*;
 use tracing::trace;
 use std::time::Duration;
 

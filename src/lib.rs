@@ -12,7 +12,7 @@ use crate::errors::CmdError;
 pub mod debug;
 pub mod errors;
 mod impls;
-pub mod output_ext;
+pub mod prelude;
 mod test;
 
 pub type Result<T> = std::result::Result<T, Error>;
