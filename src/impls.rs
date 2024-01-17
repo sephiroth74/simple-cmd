@@ -267,9 +267,6 @@ impl Cmd {
 				match sel.try_ready() {
 					Err(_) => {
 						if let Ok(Some(status)) = child.try_wait() {
-							if has_debug {
-								trace!("[thread] Exit Status Received... {:}", status);
-							}
 							*status_mutex = Some(status);
 							condvar.notify_one();
 							break;
