@@ -5,11 +5,21 @@ use thiserror::Error;
 
 use crate::Vec8ToString;
 
-#[derive(Error, Clone, PartialEq, Eq, Debug)]
+#[derive(Error, Clone, PartialEq, Eq)]
 pub struct CmdError {
 	pub status: Option<ExitStatus>,
 	pub stdout: Vec<u8>,
 	pub stderr: Vec<u8>,
+}
+
+impl Debug for CmdError {
+	fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+		f.debug_struct("CmdError")
+			.field("status", &self.status)
+			.field("stdout", &self.stdout.as_str())
+			.field("stderr", &self.stderr.as_str())
+			.finish()
+	}
 }
 
 impl From<Output> for CmdError {

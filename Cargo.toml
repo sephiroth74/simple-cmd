@@ -1,6 +1,6 @@
 [package]
 name = "simple-cmd"
-version = "0.0.17"
+version = "0.0.18-alpha1"
 edition = "2021"
 license = "MIT"
 authors = ["Alessandro Crugnola <alessandro.crugnola@gmail.com>"]
