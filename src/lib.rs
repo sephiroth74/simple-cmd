@@ -31,6 +31,7 @@ pub struct Cmd {
 	pub(crate) debug: bool,
 	pub(crate) program: OsString,
 	pub(crate) args: Vec<OsString>,
+	pub(crate) cwd: Option<OsString>,
 	pub(crate) stdin: Option<Stdio>,
 	pub(crate) stdout: Option<Stdio>,
 	pub(crate) stderr: Option<Stdio>,
@@ -42,6 +43,7 @@ pub struct Cmd {
 pub struct CommandBuilder {
 	pub(crate) debug: bool,
 	pub(crate) program: OsString,
+	pub(crate) cwd: Option<OsString>,
 	pub(crate) args: Vec<OsString>,
 	pub(crate) stdin: Option<Stdio>,
 	pub(crate) stdout: Option<Stdio>,

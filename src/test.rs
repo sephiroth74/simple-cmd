@@ -1,6 +1,8 @@
 #[cfg(test)]
 mod tests {
 	use std::convert::Infallible;
+	use std::io::BufRead;
+	use std::path::Path;
 	use std::process::{Command, Stdio};
 	use std::sync::Once;
 	use std::thread;
@@ -65,6 +67,21 @@ mod tests {
 		assert!(!output.error());
 		assert!(!output.interrupt());
 		assert!(output.signal().is_none());
+	}
+
+	#[test]
+	fn test_current_dir() {
+		init_log!();
+		let cmd = Cmd::builder("ls")
+			.args(["-la"])
+			.current_dir("/Users/alessandro/Documents/Projects")
+			.with_debug(true);
+		assert_eq!(Some(Path::new("/Users/alessandro/Documents/Projects")), cmd.get_current_dir());
+
+		let output = cmd.build().output().expect("failed to run command");
+		for line in output.stdout.lines().into_iter() {
+			println!("{}", line.unwrap());
+		}
 	}
 
 	#[test]

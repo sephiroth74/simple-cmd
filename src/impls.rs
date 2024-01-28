@@ -2,6 +2,7 @@ use std::ffi::{OsStr, OsString};
 use std::fmt::{Display, Formatter};
 use std::io;
 use std::io::{BufRead, BufReader, ErrorKind};
+use std::path::Path;
 use std::process::{ChildStderr, ChildStdout, Command, ExitStatus, Output, Stdio};
 use std::sync::{Arc, Condvar, Mutex};
 use std::time::Duration;
@@ -62,6 +63,7 @@ impl CommandBuilder {
 		CommandBuilder {
 			program: OsString::from(program.as_ref()),
 			timeout: None,
+			cwd: None,
 			debug: false,
 			args: vec![],
 			stdin: None,
@@ -155,6 +157,15 @@ impl CommandBuilder {
 		self
 	}
 
+	pub fn current_dir<P: AsRef<Path>>(mut self, dir: P) -> Self {
+		self.cwd = Some(dir.as_ref().into());
+		self
+	}
+
+	pub fn get_current_dir(&self) -> Option<&Path> {
+		self.cwd.as_ref().map(|cs| Path::new(cs))
+	}
+
 	pub fn build(mut self) -> Cmd {
 		return Cmd {
 			debug: self.debug,
@@ -165,6 +176,7 @@ impl CommandBuilder {
 			stderr: self.stderr.take(),
 			timeout: self.timeout.take(),
 			signal: self.signal.take(),
+			cwd: self.cwd.take(),
 		};
 	}
 }
@@ -179,6 +191,7 @@ impl Cmd {
 	pub fn new<S: AsRef<OsStr>>(program: S) -> Self {
 		Cmd {
 			program: OsString::from(program.as_ref()),
+			cwd: None,
 			timeout: None,
 			debug: false,
 			args: vec![],
@@ -205,10 +218,14 @@ impl Cmd {
 			command.stderr(stderr);
 		}
 
+		if let Some(cwd) = self.cwd.take() {
+			command.current_dir(cwd);
+		}
+
 		command
 	}
 
-	// endregion punlic methods
+	// endregion public methods
 
 	pub fn run(mut self) -> crate::Result<Option<ExitStatus>> {
 		if self.debug {
@@ -331,9 +348,6 @@ impl Cmd {
 	}
 
 	pub fn read_to_end(stdout: Option<ChildStdout>, stderr: Option<ChildStderr>) -> crate::Result<(Vec<u8>, Vec<u8>)> {
-		//let mut stdout_lines_count = 0;
-		//let mut stderr_lines_count = 0;
-
 		let mut stdout_writer: Vec<u8> = Vec::new();
 		let mut stderr_writer: Vec<u8> = Vec::new();
 
@@ -341,7 +355,6 @@ impl Cmd {
 			let stdout_reader = BufReader::new(stdout);
 			for line in <BufReader<ChildStdout> as BufReaderExt<BufReader<ChildStdout>>>::lines_vec(stdout_reader) {
 				stdout_writer.extend(line?);
-				//stdout_lines_count += 1;
 			}
 		}
 
@@ -349,7 +362,6 @@ impl Cmd {
 			let stderr_reader = BufReader::new(stderr);
 			for line in <BufReader<ChildStderr> as BufReaderExt<BufReader<ChildStderr>>>::lines_vec(stderr_reader) {
 				stderr_writer.extend(line?);
-				//stderr_lines_count += 1;
 			}
 		}
 
