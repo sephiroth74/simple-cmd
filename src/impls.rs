@@ -301,7 +301,7 @@ impl Cmd {
 
 					Ok(i) if !killed && oper_timeout.is_some() && i == oper_timeout.unwrap() => {
 						if has_debug {
-							warn!("timeout!");
+							warn!("command timeout! killing the process...");
 						}
 						sel.remove(oper_timeout.unwrap());
 						let _ = child.kill();
