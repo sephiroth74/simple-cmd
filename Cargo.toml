@@ -1,6 +1,6 @@
 [package]
 name = "simple-cmd"
-version = "0.0.21"
+version = "0.0.22"
 edition = "2021"
 license = "MIT"
 authors = ["Alessandro Crugnola <alessandro.crugnola@gmail.com>"]
@@ -11,7 +11,7 @@ repository = "https://github.com/sephiroth74/simple-cmd"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-thiserror = "2.0.11"
+thiserror = "2.0.12"
 crossbeam = "0.8.4"
 signal-hook = "0.3.17"
 crossbeam-channel = "0.5.14"
