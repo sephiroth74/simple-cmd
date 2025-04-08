@@ -52,6 +52,7 @@ pub struct CommandBuilder {
 	pub(crate) signal: Option<Receiver<()>>,
 }
 
+#[allow(dead_code)]
 pub(crate) trait OutputResult {
 	fn to_result(&self) -> Result<Vec<u8>>;
 	fn try_to_result(&self) -> Result<Vec<u8>>;
