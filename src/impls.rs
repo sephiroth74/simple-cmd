@@ -5,15 +5,18 @@ use std::io::{BufRead, BufReader, ErrorKind};
 use std::path::Path;
 use std::process::{ChildStderr, ChildStdout, Command, ExitStatus, Output, Stdio};
 use std::sync::{Arc, Condvar, Mutex};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use crossbeam::channel::Receiver;
-use crossbeam_channel::{tick, Select};
+use crossbeam_channel::{tick, Select, TryRecvError};
 use tracing::{error, trace, warn};
 
 use crate::debug::CommandDebug;
 use crate::errors::CmdError;
 use crate::{Cmd, CommandBuilder, Error, OutputResult, Vec8ToString};
+
+/// How often the waiting loops check the child status.
+const POLL_INTERVAL: Duration = Duration::from_millis(10);
 
 impl Display for Cmd {
 	fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
@@ -227,15 +230,50 @@ impl Cmd {
 
 	// endregion public methods
 
+	/// Start the command and return immediately, without waiting for it to finish.
+	///
+	/// A background thread reaps the process (no zombies) and enforces the timeout
+	/// and the cancel signal, if set: the process is killed when the timeout expires
+	/// or when the signal receives a message (or its sender is dropped).
+	///
+	/// Returns the exit status if the process has already exited, `None` otherwise.
+	/// Fails if the process cannot be started.
 	pub fn run(mut self) -> crate::Result<Option<ExitStatus>> {
 		if self.debug {
 			self.debug();
 		}
 
-		let mut command = self.command();
-		let mut child = command.spawn().unwrap();
-		drop(command);
-		child.try_wait().map_err(|e| crate::Error::IoError(e))
+		let cancel_signal = self.signal.take();
+		let deadline = self.timeout.take().map(|t| Instant::now() + t);
+		let mut child = self.command().spawn()?;
+
+		if let Some(status) = child.try_wait()? {
+			return Ok(Some(status));
+		}
+
+		std::thread::Builder::new().name("cmd_run".to_string()).spawn(move || {
+			if cancel_signal.is_none() && deadline.is_none() {
+				let _ = child.wait();
+				return;
+			}
+			loop {
+				if !matches!(child.try_wait(), Ok(None)) {
+					return;
+				}
+				let cancelled = cancel_signal
+					.as_ref()
+					.is_some_and(|signal| !matches!(signal.try_recv(), Err(TryRecvError::Empty)));
+				let expired = deadline.is_some_and(|deadline| Instant::now() >= deadline);
+				if cancelled || expired {
+					let _ = child.kill();
+					let _ = child.wait();
+					return;
+				}
+				std::thread::sleep(POLL_INTERVAL);
+			}
+		})?;
+
+		Ok(None)
 	}
 
 	pub fn output(self) -> crate::Result<Output> {
@@ -252,7 +290,7 @@ impl Cmd {
 		let ticks = self.timeout.take().map(|t| tick(t));
 
 		let mut command = self.command();
-		let mut child = command.spawn().unwrap();
+		let mut child = command.spawn()?;
 
 		let stdout = child.stdout.take();
 		let stderr = child.stderr.take();
@@ -281,7 +319,7 @@ impl Cmd {
 			let mut killed = false;
 
 			loop {
-				match sel.try_ready() {
+				match sel.ready_timeout(POLL_INTERVAL) {
 					Err(_) => {
 						if let Ok(Some(status)) = child.try_wait() {
 							*status_mutex = Some(status);
@@ -294,7 +332,9 @@ impl Cmd {
 						if has_debug {
 							warn!("ctrl+c received");
 						}
-						sel.remove(oper_cancel.unwrap());
+						for oper in [oper_cancel.take(), oper_timeout.take()].into_iter().flatten() {
+							sel.remove(oper);
+						}
 						let _ = child.kill();
 						killed = true;
 					}
@@ -303,7 +343,9 @@ impl Cmd {
 						if has_debug {
 							warn!("command timeout! killing the process...");
 						}
-						sel.remove(oper_timeout.unwrap());
+						for oper in [oper_cancel.take(), oper_timeout.take()].into_iter().flatten() {
+							sel.remove(oper);
+						}
 						let _ = child.kill();
 						killed = true;
 					}
@@ -384,7 +426,7 @@ impl Cmd {
 		let ticks = self.timeout.take().map(|t| tick(t));
 
 		let mut command1 = self.command();
-		let mut child1 = command1.spawn().unwrap();
+		let mut child1 = command1.spawn()?;
 
 		let child1_stdout: ChildStdout = child1
 			.stdout
@@ -395,7 +437,14 @@ impl Cmd {
 
 		other.stdin(fd);
 
-		let mut child2 = other.spawn().unwrap();
+		let mut child2 = match other.spawn() {
+			Ok(child) => child,
+			Err(err) => {
+				let _ = child1.kill();
+				let _ = child1.wait();
+				return Err(err.into());
+			}
+		};
 
 		let stdout = child2.stdout.take();
 		let stderr = child2.stderr.take();
@@ -425,7 +474,7 @@ impl Cmd {
 			let mut killed = false;
 
 			loop {
-				match sel.try_ready() {
+				match sel.ready_timeout(POLL_INTERVAL) {
 					Err(_) => {
 						if let Ok(Some(status)) = child2.try_wait() {
 							//warn!("exit status received:/**/ {:?}", status);
@@ -451,14 +500,18 @@ impl Cmd {
 					}
 
 					Ok(i) if !killed && oper_cancel.is_some() && i == oper_cancel.unwrap() => {
-						sel.remove(oper_cancel.unwrap());
+						for oper in [oper_cancel.take(), oper_timeout.take()].into_iter().flatten() {
+							sel.remove(oper);
+						}
 						let _ = child1.kill();
 						let _ = child2.kill();
 						killed = true;
 					}
 
 					Ok(i) if !killed && oper_timeout.is_some() && i == oper_timeout.unwrap() => {
-						sel.remove(oper_timeout.unwrap());
+						for oper in [oper_cancel.take(), oper_timeout.take()].into_iter().flatten() {
+							sel.remove(oper);
+						}
 						let _ = child1.kill();
 						let _ = child2.kill();
 						killed = true;
