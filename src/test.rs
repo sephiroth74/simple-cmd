@@ -72,16 +72,61 @@ mod tests {
     #[test]
     fn test_current_dir() {
         init_log!();
-        let cmd = Cmd::builder("ls")
-            .args(["-la"])
-            .current_dir("/Users/alessandro/Documents/Projects")
-            .with_debug(true);
-        assert_eq!(Some(Path::new("/Users/alessandro/Documents/Projects")), cmd.get_current_dir());
+        let dir = env!("CARGO_MANIFEST_DIR");
+        let cmd = Cmd::builder("ls").args(["-la"]).current_dir(dir).with_debug(true);
+        assert_eq!(Some(Path::new(dir)), cmd.get_current_dir());
 
         let output = cmd.build().output().expect("failed to run command");
-        for line in output.stdout.lines().into_iter() {
-            println!("{}", line.unwrap());
+        assert!(output.success());
+        assert!(output.stdout.as_str().unwrap().contains("Cargo.toml"));
+    }
+
+    #[test]
+    fn test_spawn_error_is_not_a_panic() {
+        init_log!();
+        assert!(Cmd::builder("radb-nonexistent-program").build().output().is_err());
+        assert!(Cmd::builder("radb-nonexistent-program").build().run().is_err());
+        assert!(Cmd::builder("ls")
+            .current_dir("/radb-nonexistent-dir")
+            .build()
+            .output()
+            .is_err());
+
+        let mut missing = Command::new("radb-nonexistent-program");
+        missing.stdout(Stdio::piped());
+        assert!(Cmd::builder("echo").arg("hello").build().pipe(missing).is_err());
+    }
+
+    #[test]
+    fn test_run_does_not_wait() {
+        init_log!();
+        let now = Instant::now();
+        let status = Cmd::builder("sleep").arg("2").build().run().unwrap();
+        assert_eq!(status, None);
+        assert!(now.elapsed() < Duration::from_secs(1));
+
+        // a process that has already exited returns its status
+        let status = Cmd::builder("sh").args(["-c", "exit 3"]).build().run().unwrap();
+        if let Some(status) = status {
+            assert_eq!(status.code(), Some(3));
         }
+    }
+
+    #[test]
+    fn test_run_timeout_kills_the_process() {
+        init_log!();
+        let marker = std::env::temp_dir().join(format!("simple-cmd-run-{}", std::process::id()));
+        let _ = std::fs::remove_file(&marker);
+        let script = format!("sleep 1 && touch '{}'", marker.display());
+
+        Cmd::builder("sh")
+            .args(["-c", &script])
+            .timeout(Some(Duration::from_millis(200)))
+            .build()
+            .run()
+            .unwrap();
+        sleep(Duration::from_millis(1500));
+        assert!(!marker.exists(), "the process should have been killed by the timeout");
     }
 
     #[test]
